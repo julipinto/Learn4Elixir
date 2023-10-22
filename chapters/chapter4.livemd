@@ -263,7 +263,30 @@ Vamos criar um sistema simples para rastrear o número de acessos a uma página 
 Escreva sua solução na célula abaixo. Se necessário, crie mais células.
 
 ```elixir
-"Coloque aqui sua solução"
+defmodule Acesso do
+  def inicia do
+    {:ok, agent} = Agent.start(fn -> [] end)
+    IO.puts("Agente criado com pid #{inspect(agent)} e estado []")
+    agent
+  end
+
+  def registrar_acesso(agent, data_hora_acesso) do
+    IO.puts("Reginstrando o acesso")
+    Agent.update(agent, fn state -> [{:ok, data_hora_acesso} | state] end)
+    IO.puts("O acesso foi registrado.")
+  end
+
+  def obter_acessos(agent) do
+    IO.puts("Lendo o estado do agente")
+    estado = Agent.get(agent, fn state -> state end)
+    IO.puts("O estado do agente é #{inspect(estado)}")
+  end
+
+  def encerra(agent) do
+    Agent.stop(agent)
+    IO.puts("Agente com pid #{inspect(agent)} foi encerrado.")
+  end
+end
 ```
 
 ## Exercício 2
@@ -286,6 +309,22 @@ Este exercício permitirá que você pratique a manipulação de datas em Elixir
 
 ```elixir
 def calcular_idade(data_aniversario) do
-  # Escreva aqui a sua solução
+  {ano, mes, dia} = data_aniversario
+  {:ok, cur_datetime} = DateTime.now("Etc/UTC")
+  cur_dia = cur_datetime.day
+  cur_mes = cur_datetime.month
+  cur_ano = cur_datetime.year
+  
+  anos = cur_ano - ano
+  plural_s = if anos == 1, do: "", else: "s"
+  
+  {:ok, formatted_birthdate} = Date.from_iso8601("#{ano}-#{mes}-#{dia}")
+  date_difference = Date.diff(cur_datetime, formatted_birthdate)
+  
+  cond do
+    date_difference < 0 -> "Data inválida"
+    dia == cur_dia && mes == cur_mes -> "Hoje você completa #{anos} ano#{plural_s}, parabéns pelo aniversário!"
+    true -> "#{anos} ano#{plural_s}"
+  end
 end
 ```
