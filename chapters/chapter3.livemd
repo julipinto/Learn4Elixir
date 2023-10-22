@@ -382,7 +382,18 @@ Para completar esta tarefa, você precisará usar estruturas condicionais, como 
 ```elixir
 defmodule ElixGames.Encontro do
   def determina_encontro(localizacao, probabilidade) do
-    # Implemente a lógica de determinação do resultado do encontro aqui
+    chance_amigavel =
+      cond do
+        localizacao == "Bosque Encantado" -> 90
+        localizacao == "Caverna Escura" -> 60
+        localizacao == "Torre Misteriosa" -> 30
+      end
+
+    if probabilidade >= chance_amigavel do
+      "Criatura amigável"
+    else
+      "Criatura hostil"
+    end
   end
 end
 ```
@@ -413,37 +424,84 @@ A seguir está um exemplo de como as informações dos clientes estão atualment
 1. Crie uma função chamada `parsear_clientes/1` que receba a string de informações de clientes e a divida em uma lista de informações de clientes formatadas. Use o sigil `~s` para fazer isso.
 
 ```elixir
-def parsear_clientes(informacao) do
-  # A fazer
+defmodule Cliente do
+  def parsear_clientes(informacao) do
+    informacao
+      |> String.split(~r/;/) 
+      |> Enum.map(&String.trim/1)
+      |> formatar_informacoes([])
+  end
+
+  defp formatar_informacoes([], resultado) do
+    Enum.reverse(resultado)
+  end
+
+  defp formatar_informacoes([info | tail], resultado) do
+    [nome, idade, email, telefone] = String.split(info, ~r/,/)
+    # Remove os caracteres de escape dos nomes
+    nome = String.replace(nome, ~r/"/, "")
+
+    cliente = %{
+      nome: String.trim(nome),
+      idade: String.to_integer(idade),
+      email: String.trim(email),
+      telefone: String.trim(telefone)
+    }
+
+    formatar_informacoes(tail, [cliente | resultado])
+  end
 end
 ```
 
 ```elixir
-
+~s{"Fulano Tal",30,fulano@email.com,+5511995236587;"Ciclano Outro",25,ciclano@email.com,5545996578452}
+|> Cliente.parsear_clientes()
 ```
 
 1. Crie outra função chamada `extrair_nomes/1` que receba a lista de informações de clientes e retorne uma lista com os nomes dos clientes.
 
 ```elixir
-def extrair_nomes(clientes) do
-  # A fazer
+defmodule Name do
+  def extrair_nomes(clientes) do
+    clientes
+    |> String.split(~r/;/)
+    |> Enum.map(&String.replace(&1, ~r/"/, ""))
+    |> Enum.map(&hd(String.split(&1, ~r/,/)))
+  end
 end
 ```
 
 ```elixir
 # Caso a entrada fosse o exemplo na descrição deve imprimir ["Fulano Tal", "Ciclano Outro"]
+~s{"Fulano Tal",30,fulano@email.com,+5511995236587;"Ciclano Outro",25,ciclano@email.com,5545996578452}
+|> Name.extrair_nomes()
 ```
 
 1. Crie uma terceira função chamada `filtrar_clientes_por_idade/2` que receba a lista de informações de clientes e uma idade mínima e retorne uma lista com as informações dos clientes que têm pelo menos a idade especificada.
 
 ```elixir
-def filtrar_clientes_por_idade(clientes, idade_minima) do
-  # A fazer
+defmodule Filter do
+  def filtrar_clientes_por_idade(clientes, idade_minima) do
+    clientes_filtrados =
+      clientes
+      |> String.split(~r/;/)
+      |> Enum.map(&String.replace(&1, ~r/"/, ""))
+      |> Enum.map(&String.split(&1, ~r/,/))
+      |> Enum.filter(fn [_, idade | _] -> String.to_integer(idade) >= idade_minima end)
+
+    # idade para inteiro
+    Enum.map(clientes_filtrados, fn c ->
+      [nome, idade | rest] = c
+      [nome, String.to_integer(idade) | rest]
+    end)
+  end
 end
 ```
 
 ```elixir
 # Deveria imprimir [["Fulano Tal", 30, "fulano@email.com", "+5511995236587"]]
+~s{"Fulano Tal",30,fulano@email.com,+5511995236587;"Ciclano Outro",25,ciclano@email.com,5545996578452}
+|> Filter.filtrar_clientes_por_idade(30)
 ```
 
 ### Exercicio 3
@@ -477,6 +535,33 @@ calcula_total(produtos, cliente) # deve retornar 243.00
 
 ```elixir
 defmodule Ecommerce do
-  # A fazer
+  def calcula_total(produtos, cliente) do
+    produtos
+    |> calcular_total_sem_desconto
+    |> aplicar_descontos(cliente)
+  end
+
+  defp calcular_total_sem_desconto(produtos) do
+    Enum.reduce(produtos, 0, fn %{preco: preco, quantidade: quantidade}, acc ->
+      acc + preco * quantidade
+    end)
+  end
+
+  defp aplicar_descontos(total_sem_desconto, cliente) do
+    desconto = 0
+
+    desconto =
+      cond do
+        total_sem_desconto > 1000.0 -> desconto + 0.1
+        total_sem_desconto > 500.0 -> desconto + 0.15
+        total_sem_desconto > 200.0 -> desconto + 0.2
+        true -> desconto
+      end
+
+    desconto = if cliente[:membro_clube], do: desconto + 0.05
+    desconto = if cliente[:cupom] == "UBL10", do: desconto + 0.1
+    desconto |> IO.inspect()
+    total_sem_desconto * (1 - desconto)
+  end
 end
 ```
